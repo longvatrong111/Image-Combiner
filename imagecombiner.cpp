@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cstdlib>
+#include <QCoreApplication>
 
 ImageCombiner::ImageCombiner(QWidget *parent)
     : QWidget(parent),
@@ -288,7 +289,10 @@ void ImageCombiner::submitInput()
     mTotal = std::min(mMaxOutput, mNumberOfCombination);
     randomAlg = mMaxOutput < mNumberOfCombination;
 
-    startWorkerThread();
+//    startWorkerThread();
+    generateCombineImages(0, getCombination(), getDrawChance());
+    QString dummy;
+    handleResults(dummy);
 }
 
 void ImageCombiner::startWorkerThread()
@@ -335,6 +339,7 @@ void ImageCombiner::generateCombineImages(size_t index, vector<QImage>& combinat
             combination.push_back(curImage);
             saveImage(combination, drawChance);
             combination.pop_back();
+            QCoreApplication::processEvents();
             if (mCurOutputIndex >= mMaxOutput) break;
         }
         return;
