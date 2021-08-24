@@ -5,67 +5,107 @@
 #include <cstdlib>
 #include <QCoreApplication>
 
+
 ImageCombiner::ImageCombiner(QWidget *parent)
     : QWidget(parent),
-      mDescription(new QGraphicsView(this)),
-      mList(new QGraphicsView(this)),
+      mDirectoryList(new QGraphicsView(this)),
       mControl(new QGraphicsView(this)),
-      mView(new QGraphicsView(this))
+      mView(new QGraphicsView(this)),
+      mImageList(new QGraphicsView(this))
 {
-    setWindowIcon(QIcon("./app.ico"));
-    setWindowTitle("Image Combiner");
-    setFixedSize(1000, 800);
-    mDescription->setGeometry(20,20,360,80);
-    mList->setGeometry(20,120,360,540);
-    mControl->setGeometry(20,680,360,100);
-    mView->setGeometry(400,20,580,760);
-
-    QLabel* description = new QLabel("Select folders containing body parts.", mDescription);
-    QLabel* description2 = new QLabel("Photos in the folders below will overlap photos in the", mDescription);
-    QLabel* description3 = new QLabel("previous ones.", mDescription);
-    description->setGeometry(20,10,320,20);
-    description2->setGeometry(20,30,320,20);
-    description3->setGeometry(20,50,320,20);
-
-    /* mView */
-    QLabel* headlineView = new QLabel("EXAMPLE COMBINATION", mView);
-    headlineView->setGeometry(215,20,150,40);
-    headlineView->setStyleSheet("font-weight: bold; color: blue");
-
-    /* Control block */
-    mAddDir = new QPushButton("Add Directory", mControl);
-    mAddDir->setGeometry(10,15,90,30);
-    QObject::connect(mAddDir, SIGNAL (clicked()), this, SLOT(openDirectory()));
-
-    mSubmit = new QPushButton("Process", mControl);
-    mSubmit->setGeometry(280,15,70,70);
-    QObject::connect(mSubmit, SIGNAL (clicked()), this, SLOT(submitInput()));
-
-    mMaxOutputLabel = new QLabel("Max images: ", mControl);
-    mMaxOutputLabel->setGeometry(115,15,80,30);
-
-    mMaxOutputSpin = new QSpinBox(mControl);
-    mMaxOutputSpin->setRange(0,999999999);
-    mMaxOutputSpin->setValue(1000000);
-    mMaxOutputSpin->setGeometry(190,15,80,30);
-//    QObject::connect(mMaxOutputSpin, QOverload<int>::of(&QSpinBox::valueChanged),
-//                     [=](int i){ mMaxOutput = i; });
-
-    mProgressBar = new QProgressBar(mControl);
-    mProgressBar->setGeometry(10,55,260,30);
-    mProgressBar->setRange(0,100);
-    mProgressBar->setTextVisible(false);
-
-
-    lbl = new QLabel(mView);
-    lbl->setGeometry(50,125,500,500);
-    lbl->setAlignment(Qt::AlignCenter);
+      renderTemplate();
+      renderDirBlock();
+      renderImageBlock();
+      renderControlBlock();
+      renderViewBlock();
 }
 
 ImageCombiner::~ImageCombiner()
 {
     /* Do something */
-//    delete ui;
+}
+
+void ImageCombiner::renderTemplate()
+{
+    /* App */
+    setWindowIcon(QIcon("./app.ico"));
+    setWindowTitle("Image Combiner");
+    setFixedSize((BWIDTH*3)+(PADDING*4), BHEIGHT+(PADDING*2));
+
+    mDirectoryList->setGeometry(PADDING, PADDING, BWIDTH, BHEIGHT);
+    mImageList->setGeometry((PADDING*2)+BWIDTH, PADDING, BWIDTH, BHEIGHT);
+    mView->setGeometry((PADDING*3)+(BWIDTH*2), PADDING, BWIDTH, BHEIGHT-PADDING-140);
+    mControl->setGeometry((PADDING*3)+(BWIDTH*2), PADDING+BHEIGHT-140, BWIDTH, 140);
+}
+
+void ImageCombiner::renderDirBlock()
+{
+    /* Directory list block */
+    QString description("Select folders containing body parts...");
+    QLabel* descriptionLabel = new QLabel(description, mDirectoryList);
+    descriptionLabel->setGeometry(PADDING,PADDING,BWIDTH-(PADDING*2),40);
+    descriptionLabel->setAlignment(Qt::AlignJustify);
+
+    mScrollDir = new QScrollArea(mDirectoryList);
+    mScrollDir->setGeometry(0,60,BWIDTH,BHEIGHT-140);
+
+    mDisplayDirList = new QWidget();
+    mScrollDir->setWidget(mDisplayDirList);
+    mDisplayDirList->setGeometry(0,0,BWIDTH-20,BHEIGHT-140);
+
+    /* Buttons */
+    mButtonsArea = new QWidget(mDirectoryList);
+    mButtonsArea->setGeometry(0,BHEIGHT-(PADDING*2)-40,BWIDTH,PADDING*2+40);
+
+    mAddBackground = new QPushButton("SELECT BACKGROUND", mButtonsArea);
+    mAddBackground->setGeometry(PADDING,PADDING,(BWIDTH-(3*PADDING))/2,40);
+
+    mAddDir = new QPushButton("ADD DIRECTORY", mButtonsArea);
+    mAddDir->setGeometry(PADDING*2+(BWIDTH-(3*PADDING))/2,PADDING,(BWIDTH-(3*PADDING))/2,40);
+    QObject::connect(mAddDir, SIGNAL (clicked()), this, SLOT(openDirectory()));
+}
+
+void ImageCombiner::renderImageBlock()
+{
+    mScrollImage = new QScrollArea(mImageList);
+    mScrollImage->setGeometry(0,0,BWIDTH,BHEIGHT);
+
+    mDisplayImageList = new QWidget();
+    mScrollImage->setWidget(mDisplayImageList);
+    mDisplayImageList->setGeometry(0,0,BWIDTH-20,BHEIGHT);
+}
+
+void ImageCombiner::renderControlBlock()
+{
+    /* Control block */
+    QLabel* maxOutputLabel = new QLabel("Max images: ", mControl);
+    maxOutputLabel->setGeometry(PADDING,PADDING,80,40);
+
+    mMaxOutputSpin = new QSpinBox(mControl);
+    mMaxOutputSpin->setRange(0,999999999);
+    mMaxOutputSpin->setValue(mMaxOutput); /* Default value */
+    mMaxOutputSpin->setGeometry(PADDING+80,PADDING,80,40);
+
+    mProcess = new QPushButton("Process", mControl);
+    mProcess->setGeometry(BWIDTH-PADDING-80,PADDING,80,40);
+    QObject::connect(mProcess, SIGNAL (clicked()), this, SLOT(submitInput()));
+
+    mProgressBar = new QProgressBar(mControl);
+    mProgressBar->setGeometry(PADDING,PADDING*2+40,BWIDTH-(PADDING*2),40);
+    mProgressBar->setTextVisible(false);
+}
+
+void ImageCombiner::renderViewBlock()
+{
+    /* View block */
+    QLabel* headlineView = new QLabel("EXAMPLE COMBINATION", mView);
+    headlineView->setGeometry(PADDING,PADDING,BWIDTH-(PADDING*2),20);
+    headlineView->setStyleSheet("font-weight: bold; color: blue");
+    headlineView->setAlignment(Qt::AlignCenter);
+
+    mExamImage = new QLabel(mView);
+    mExamImage->setGeometry(PADDING,PADDING*2+20,BWIDTH-(PADDING*2),mView->height()-(PADDING*3)-20);
+    mExamImage->setAlignment(Qt::AlignCenter);
 }
 
 void ImageCombiner::openDirectory()
@@ -73,53 +113,53 @@ void ImageCombiner::openDirectory()
     if (isRunningMainFunction) return;
 
     QString dirPath = QFileDialog::getExistingDirectory(this, tr("Add Directory"), "C:/Users/TRONG/Downloads/ImageCombinerTest", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-//    std::cout << dirPath.toStdString() << endl;
     if (dirPath.isEmpty()) return;
 
     QDir* dir = new QDir(dirPath);
     dirList.push_back(dir);
 
     dirPath.replace(0, dirPath.lastIndexOf('/') + 1, "");
-    QPushButton* newBtn = new QPushButton(dirPath, mList);
+    QPushButton* newBtn = new QPushButton(dirPath, mDisplayDirList);
     btnList.push_back(newBtn);
 
-    QSpinBox* newSpin = new QSpinBox(mList);
-    spinList.push_back(newSpin);
-    newSpin->setRange(0, 100);
-    newSpin->setValue(100);
-
-    QPushButton* newCloseBtn = new QPushButton("X", mList);
+    QPushButton* newCloseBtn = new QPushButton("X", mDisplayDirList);
+    QObject::connect(newCloseBtn, &QPushButton::clicked, [=](){ this->deleteDir(newCloseBtn); });
     closeList.push_back(newCloseBtn);
 
-    QLabel* newRate = new QLabel("Rate: ", mList);
-    rateList.push_back(newRate);
-    QLabel* newPercent = new QLabel("%", mList);
-    percentList.push_back(newPercent);
+    numDir++;
 
+    updateDirectoryList(newBtn, newCloseBtn);
+    updateExamImage();
+//    QSpinBox* newSpin = new QSpinBox(mDisplayDirList);
+//    spinList.push_back(newSpin);
+//    newSpin->setRange(0, 100);
+//    newSpin->setValue(100);
 
-    renderDir(newBtn, newSpin, newCloseBtn, newRate, newPercent);
-    QObject::connect(newCloseBtn, &QPushButton::clicked, [=](){ this->deleteDir(newCloseBtn); });
-    renderExamImage();
+//    QLabel* newRate = new QLabel("Rate: ", mDisplayDirList);
+//    rateList.push_back(newRate);
+//    QLabel* newPercent = new QLabel("%", mDisplayDirList);
+//    percentList.push_back(newPercent);
 }
 
-void ImageCombiner::renderDir(QPushButton* newBtn, QSpinBox* newSpin, QPushButton* newCloseBtn, QLabel* newRate, QLabel* newPercent)
+void ImageCombiner::updateDirectoryList(QPushButton* newBtn, QPushButton* newCloseBtn)
 {
-    newBtn->setGeometry(20,dy+5,160,30);
+    newBtn->setGeometry(PADDING,dy,BWIDTH-60-(PADDING*2),40);
     newBtn->show();
 
-    newRate->setGeometry(195,dy,30,40);
-    newRate->show();
-
-    newSpin->setGeometry(225,dy+5,40,30);
-    newSpin->show();
-
-    newPercent->setGeometry(270,dy,10,40);
-    newPercent->show();
-
-    newCloseBtn->setGeometry(300,dy,40,40);
+    newCloseBtn->setGeometry(PADDING+newBtn->width(),dy,40,40);
     newCloseBtn->show();
 
     dy += 50;
+    if (dy > mDisplayDirList->height() - 100) mDisplayDirList->resize(mDisplayDirList->width(),mDisplayDirList->height()+300);
+
+    //    newRate->setGeometry(195,dy,30,40);
+    //    newRate->show();
+
+    //    newSpin->setGeometry(225,dy+5,40,30);
+    //    newSpin->show();
+
+    //    newPercent->setGeometry(270,dy,10,40);
+    //    newPercent->show();
 }
 
 void ImageCombiner::deleteDir(QPushButton* btn)
@@ -140,54 +180,47 @@ void ImageCombiner::deleteDir(QPushButton* btn)
     for (size_t i = index; i < dirList.size(); ++i)
     {
         btnList[i]->close();
-        spinList[i]->close();
         closeList[i]->close();
-        rateList[i]->close();
-        percentList[i]->close();
         dy -= 50;
+        if (dy < mDisplayDirList->height() - 400) mDisplayDirList->resize(mDisplayDirList->width(),mDisplayDirList->height()-300);
     }
 
     /* Delete data of index */
     delete btnList[index];
-    delete spinList[index];
     delete closeList[index];
     delete dirList[index];
-    delete rateList[index];
-    delete percentList[index];
+
     btnList[index] = nullptr;
-    spinList[index] = nullptr;
     closeList[index] = nullptr;
     dirList[index] = nullptr;
-    rateList[index] = nullptr;
-    percentList[index] = nullptr;
 
     /* Move data after index */
     for (size_t i = index; i < dirList.size() - 1; ++i)
     {
         btnList[i] = btnList[i+1];
-        spinList[i] = spinList[i+1];
         closeList[i] = closeList[i+1];
         dirList[i] = dirList[i+1];
-        rateList[i] = rateList[i+1];
-        percentList[i] = percentList[i+1];
     }
     btnList.pop_back();
-    spinList.pop_back();
     closeList.pop_back();
     dirList.pop_back();
-    rateList.pop_back();
-    percentList.pop_back();
+
+    numDir--;
 
     /* Re-render */
-    for (size_t i = index; i < dirList.size(); ++i) renderDir(btnList[i], spinList[i], closeList[i], rateList[i], percentList[i]);
+    for (size_t i = index; i < dirList.size(); ++i) updateDirectoryList(btnList[i], closeList[i]);
 
-    renderExamImage();
+    updateExamImage();
 }
 
 
-void ImageCombiner::renderExamImage()
+void ImageCombiner::updateExamImage()
 {
-    if (dirList.size() == 0) return;
+    if (dirList.size() == 0)
+    {
+        mExamImage->clear();
+        return;
+    }
 
     vector<QImage> combination;
     QStringList filters;
@@ -198,10 +231,8 @@ void ImageCombiner::renderExamImage()
         QFileInfoList infoList(dir->entryInfoList(filters, QDir::Files|QDir::NoDotAndDotDot));
         if (infoList.size() != 0)
         {
-//            std::cout << "render" << endl;
             combination.push_back(QImage(infoList[0].absoluteFilePath()));
         }
-//        imagesContainerList.push_back(infoList);
     }
 
     QImage res(combination[0].width(), combination[0].height(), QImage::Format_RGBA8888);
@@ -214,9 +245,9 @@ void ImageCombiner::renderExamImage()
     delete painter;
 
     QPixmap pix = QPixmap::fromImage(res);
-    pix = pix.scaled(lbl->size(),Qt::KeepAspectRatio);
-    lbl->setPixmap(pix);
-    lbl->show();
+    pix = pix.scaled(mExamImage->size(),Qt::KeepAspectRatio);
+    mExamImage->setPixmap(pix);
+    mExamImage->show();
 
 //    QGraphicsPixmapItem item( QPixmap::fromImage(res));
 //    QGraphicsScene* scene = new QGraphicsScene();
@@ -224,16 +255,16 @@ void ImageCombiner::renderExamImage()
 //    scene->addItem(&item);
 //    view->show();    QString filename = "xxxxx";
 
-//    QLabel* lbl = new QLabel(this);
+//    QLabel* mExamImage = new QLabel(this);
 //    /** set content to show center in label */
-//    lbl->setAlignment(Qt::AlignCenter);
+//    mExamImage->setAlignment(Qt::AlignCenter);
 //    QPixmap pix;
 
 //    /** to check wether load ok */
 //    if(pix.load(filename)){
 //        /** scale pixmap to fit in label'size and keep ratio of pixmap */
-//        pix = pix.scaled(lbl->size(),Qt::KeepAspectRatio);
-//        lbl->setPixmap(pix);
+//        pix = pix.scaled(mExamImage->size(),Qt::KeepAspectRatio);
+//        mExamImage->setPixmap(pix);
 //    }
 }
 
@@ -273,15 +304,18 @@ void ImageCombiner::submitInput()
     for (auto dir:dirList)
     {
         QFileInfoList* infoList = new QFileInfoList(dir->entryInfoList(filters, QDir::Files|QDir::NoDotAndDotDot));
-//        for (int i = 0; i < infoList->size(); ++i) std::cout << (*infoList)[i].absoluteFilePath().toStdString() << endl;
         imagesContainerList.push_back(infoList);
     }
 
     mNumberOfCombination = 1;
     for (size_t i = 0; i < imagesContainerList.size(); ++i)
     {
-        mDrawChance.push_back(spinList[i]->value());
-        mNumberOfCombination *= imagesContainerList[i]->size();
+        int64_t temp = (int64_t)mNumberOfCombination * (int64_t)imagesContainerList[i]->size();
+        if (temp > 999999999)
+        {
+            return;
+        }
+        mNumberOfCombination = (int32_t)temp;
     }
 
     mCurOutputIndex = 0;
@@ -289,43 +323,34 @@ void ImageCombiner::submitInput()
     mTotal = std::min(mMaxOutput, mNumberOfCombination);
     randomAlg = mMaxOutput < mNumberOfCombination;
 
-//    startWorkerThread();
-    generateCombineImages(0, getCombination(), getDrawChance());
-    QString dummy;
-    handleResults(dummy);
+    mProgressBar->setRange(0,mTotal);
+
+    generateCombineImages(0, mCombination);
+    endGenerating();
 }
 
-void ImageCombiner::startWorkerThread()
-{
-    WorkerThread* mWorkerThread = new WorkerThread(this);
-    connect(mWorkerThread, &WorkerThread::resultReady, this, &ImageCombiner::handleResults);
-    connect(mWorkerThread, &WorkerThread::finished, mWorkerThread, &QObject::deleteLater);
-    mWorkerThread->start();
-}
-
-void ImageCombiner::handleResults(const QString &s)
+void ImageCombiner::endGenerating()
 {
     /* Clear current data for a submition */
     mCombination.clear();
-    mDrawChance.clear();
     imagesContainerList.clear();
     isRunningMainFunction = false;
 
     QMessageBox msgBox;
-    msgBox.setText("Success!");
-    msgBox.setInformativeText("Do you want to move to output folder?");
-    msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Open);
-    msgBox.setDefaultButton(QMessageBox::Open);
-    auto res = msgBox.exec();
+    msgBox.setText("Save images successfully!");
+    msgBox.exec();
+//    msgBox.setInformativeText("Do you want to move to output folder?");
+//    msgBox.setStandardButtons(QMessageBox::Cancel | QMessageBox::Open);
+//    msgBox.setDefaultButton(QMessageBox::Open);
 //    const int accept = 0;
 //    std::cout << res << endl;
-    if (res == 8192)
-    {
-        QDesktopServices::openUrl(QUrl(mOutDir->absolutePath()));
-    }
+//    if (res == 8192)
+//    {
+//        QDesktopServices::openUrl(QUrl(mOutDir->absolutePath()));
+//    }
 }
 
-void ImageCombiner::generateCombineImages(size_t index, vector<QImage>& combination, vector<int>& drawChance)
+void ImageCombiner::generateCombineImages(size_t index, vector<QImage>& combination)
 {
     if (mCurOutputIndex >= mMaxOutput) return;
 
@@ -337,7 +362,7 @@ void ImageCombiner::generateCombineImages(size_t index, vector<QImage>& combinat
 
             QImage curImage((*imagesContainerList[index])[minorIndex].absoluteFilePath());
             combination.push_back(curImage);
-            saveImage(combination, drawChance);
+            saveImage(combination);
             combination.pop_back();
             QCoreApplication::processEvents();
             if (mCurOutputIndex >= mMaxOutput) break;
@@ -349,12 +374,12 @@ void ImageCombiner::generateCombineImages(size_t index, vector<QImage>& combinat
     {
         QImage curImage((*imagesContainerList[index])[minorIndex].absoluteFilePath());
         combination.push_back(curImage);
-        generateCombineImages(index + 1, combination, drawChance);
+        generateCombineImages(index + 1, combination);
         combination.pop_back();
     }
 }
 
-void ImageCombiner::saveImage(vector<QImage>& combination, vector<int>& drawChance)
+void ImageCombiner::saveImage(vector<QImage>& combination)
 {
     if (randomAlg)
     {
@@ -372,25 +397,29 @@ void ImageCombiner::saveImage(vector<QImage>& combination, vector<int>& drawChan
     QPainter* painter = new QPainter(&res);
     for (size_t i = 0; i < n; ++i)
     {
-        if (std::rand() % 100 + 1 > drawChance[i]) continue;
+//        if (std::rand() % 100 + 1 > drawChance[i]) continue;
         painter->drawImage(0, 0, combination[i]);
     }
     painter->end();
     delete painter;
 
-    QString name(to_string(mCurOutputIndex).c_str());
+    QString name(to_string(mCurOutputIndex+1).c_str());
     QString format = ".png";
     QString path = mOutDir->absolutePath() + "/" + name + format;
     if (res.save(path)) std::cout << "Save " << path.toStdString() << " successfully !!!" << endl;
-//    res.save(path);
-//    std::cout << "Before" << endl;
+
     mCurOutputIndex++;
-    mProgressBar->setValue(mCurOutputIndex*100/mTotal);
+    mProgressBar->setValue(mCurOutputIndex);
     mNumberOfCombination--;
-//    std::cout << "After" << endl;
 }
 
-
+void ImageCombiner::startWorkerThread()
+{
+//    WorkerThread* mWorkerThread = new WorkerThread(this);
+//    connect(mWorkerThread, &WorkerThread::resultReady, this, &ImageCombiner::handleResults);
+//    connect(mWorkerThread, &WorkerThread::finished, mWorkerThread, &QObject::deleteLater);
+//    mWorkerThread->start();
+}
 
 
 

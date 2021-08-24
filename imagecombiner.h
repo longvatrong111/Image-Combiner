@@ -1,6 +1,8 @@
 #ifndef IMAGECOMBINER_H
 #define IMAGECOMBINER_H
 
+#include <./definition.h>
+
 #include <QObject>
 #include <QWidget>
 #include <QGraphicsView>
@@ -23,6 +25,7 @@
 #include <QGraphicsPixmapItem>
 #include <QGraphicsScene>
 #include <QIcon>
+#include <QScrollArea>
 
 #include <QFileSystemWatcher>
 #include <QDesktopServices>
@@ -43,44 +46,54 @@ public:
     ImageCombiner(QWidget* parent = nullptr);
     ~ImageCombiner();
 
-    void generateCombineImages(size_t index, vector<QImage>& combination, vector<int>& drawChance);
-    vector<QImage>& getCombination() { return mCombination; }
-    vector<int>& getDrawChance() { return mDrawChance; }
-
 private:
-    QGraphicsView* mDescription;
-    QGraphicsView* mList;
-    QGraphicsView* mControl;
+    QGraphicsView* mDirectoryList;
+    QGraphicsView* mImageList;
     QGraphicsView* mView;
+    QGraphicsView* mControl;
 
-    /* Control block */
+    int32_t numDir = 0;
+    vector<int> numImage;
+
+    /* Directory list area */
+    QScrollArea* mScrollDir;
+    QWidget* mDisplayDirList;
+    QWidget* mButtonsArea;
     QPushButton* mAddDir;
-    QPushButton* mSubmit;
+    QPushButton* mAddBackground;
+
+    /* Image list area */
+    QScrollArea* mScrollImage;
+    QWidget* mDisplayImageList;
+
+    /* View */
+    QLabel* mExamImage;
     QProgressBar* mProgressBar;
 
     /* Data */
     vector<QDir*> dirList;
-
-    /* Display data */
-    vector<QPushButton*> btnList;
-    vector<QSpinBox*> spinList;
-    vector<QPushButton*> closeList;
-    vector<QLabel*> rateList;
-    vector<QLabel*> percentList;
-    int32_t dy = 10;
-
-    QLabel* lbl;
-
-    /* Generation data */
-    QDir* mOutDir;
     vector<QFileInfoList*> imagesContainerList;
 
-    vector<QImage> mCombination;
-    vector<int> mDrawChance;
+    /* Dynamic display data */
+    vector<QPushButton*> btnList;
+    vector<QPushButton*> closeList;
+    int32_t dy = 10;
 
-    QLabel* mMaxOutputLabel;
+//    vector<QSpinBox*> spinList;
+//    vector<QLabel*> rateList;
+//    vector<QLabel*> percentList;
+
+    /* Data for processing */
+    QDir* mOutDir;
+    vector<QImage> mCombination;
+//    vector<int> mDrawChance;
+
+    /* Number of output */
+    QPushButton* mProcess;
+
     QSpinBox* mMaxOutputSpin;
-    int32_t mMaxOutput = 1000000;
+    int32_t mMaxOutput = 1000000; /* mMaxOutputSpin.value(), default = 1000000 */
+
     int32_t mNumberOfCombination = 1;
     int32_t mCurOutputIndex;
     int32_t mTotal; /* Min of max output by user or max number of combinations */
@@ -90,9 +103,18 @@ private:
 
 private:
 //    Ui::MainWindow *ui;
-    void renderDir(QPushButton* newBtn, QSpinBox* newSpin, QPushButton* newCloseBtn, QLabel* newRate, QLabel* newPercent);
-    void renderExamImage();
-    void saveImage(vector<QImage>& combination, vector<int>& drawChance);
+    void renderTemplate();
+    void renderDirBlock();
+    void renderImageBlock();
+    void renderControlBlock();
+    void renderViewBlock();
+
+    void updateDirectoryList(QPushButton* newBtn, QPushButton* newCloseBtn);
+    void updateExamImage();
+    void generateCombineImages(size_t index, vector<QImage>& combination);
+    void saveImage(vector<QImage>& combination);
+    void endGenerating();
+
     void startWorkerThread();
     void handleResults(const QString &s);
 
@@ -100,6 +122,7 @@ public slots:
     void openDirectory();
     void deleteDir(QPushButton* btn);
     void submitInput();
+
 };
 #endif // IMAGECOMBINER_H
 
@@ -115,7 +138,7 @@ public:
 private:
     void run() override {
         QString result;
-        mParent->generateCombineImages(0, mParent->getCombination(), mParent->getDrawChance());
+
         emit resultReady(result);
     }
 signals:
