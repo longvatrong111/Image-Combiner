@@ -208,6 +208,15 @@ void ImageCombiner::selectBackground()
     QString dirPath = QFileDialog::getExistingDirectory(this, tr("Select background"), "C:/Users/TRONG/Downloads/ImageCombinerTest", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (dirPath.isEmpty()) return;
 
+    if (mBackgroundDir)
+    {
+        mBackgroundBtn->close();
+        mBackgroundClose->close();
+        delete mBackgroundBtn;
+        delete mBackgroundClose;
+        delete mBackgroundDir;
+    }
+
     mBackgroundDir = new QDir(dirPath);
     storeDirectoryData(mBackgroundDir);
 
@@ -245,7 +254,7 @@ void ImageCombiner::renderImageListBgr()
     if (it != mDataMap.end()) currentDirData = it->second;
     else return;
 
-    mDisplayImageList->resize(mDisplayImageList->width(), std::max(currentDirData->size()*170+10,BHEIGHT));
+    mDisplayImageList->resize(mDisplayImageList->width(), std::max(currentDirData->size()/2*110+10,BHEIGHT));
     currentDirData->renderImages();
 }
 
@@ -303,7 +312,7 @@ void ImageCombiner::renderImageList(QPushButton* btn)
     if (it != mDataMap.end()) currentDirData = it->second;
     else return;
 
-    mDisplayImageList->resize(mDisplayImageList->width(), std::max(currentDirData->size()*170+10,BHEIGHT));
+    mDisplayImageList->resize(mDisplayImageList->width(), std::max(currentDirData->size()/2*110+10,BHEIGHT));
     currentDirData->renderImages();
 }
 
@@ -348,7 +357,7 @@ void ImageCombiner::updateExamImage()
     delete painter;
 
     QPixmap pix = QPixmap::fromImage(res);
-    pix = pix.scaled(mExamImage->size(),Qt::KeepAspectRatio);
+    pix = pix.scaled(mExamImage->size(),Qt::KeepAspectRatio,Qt::SmoothTransformation);
     mExamImage->setPixmap(pix);
     mExamImage->show();
 //    QLabel* mExamImage = new QLabel(this);

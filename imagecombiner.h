@@ -45,32 +45,38 @@ class WorkerThread : public QThread
 {
     Q_OBJECT
 public:
-    WorkerThread(QFileInfoList* fileInfoList, vector<QLabel*>& displayImageList) : QThread()
+    WorkerThread(QFileInfoList* fileInfoList, vector<QLabel*>& displayImageList, QPainter* painter) : QThread()
     {
-//        mParent = parent;
         mFileInfoList = fileInfoList;
         mDisplayImageList = displayImageList;
+        mPainter = painter;
     }
 private:
     void run() override {
 //        QString result;
 //        emit resultReady(result);
         int32_t n = mFileInfoList->size();
+        QLabel* displayImg;
         for (int i = 0; i < n; ++i)
         {
-            QLabel* displayImg = mDisplayImageList[i];
-            QPixmap image((*mFileInfoList)[i].absoluteFilePath());
-            image = image.scaled(displayImg->size(),Qt::KeepAspectRatio);
+            displayImg = mDisplayImageList[i];
+            QImage img((*mFileInfoList)[i].absoluteFilePath());
+            QPixmap image = QPixmap::fromImage(img);
+            image = image.scaled(displayImg->size(),Qt::KeepAspectRatio,Qt::SmoothTransformation);
+            mPainter->begin(&image);
+            mPainter->setPen(Qt::black);
+//            mPainter->drawRect(image.rect());
+            mPainter->drawRect(0,0,99,99);
+            mPainter->end();
             displayImg->setPixmap(image);
         }
     }
 signals:
     void resultReady(const QString &s);
 private:
-//    ImageCombiner* mParent;
-//    DirectoryData* mParent;
     QFileInfoList* mFileInfoList;
     vector<QLabel*> mDisplayImageList;
+    QPainter* mPainter;
 };
 
 class DirectoryData : public QObject
@@ -80,6 +86,7 @@ public:
     DirectoryData(QDir* dir, QWidget* parent)
     {
         mPath = dir->absolutePath();
+        mPainter = new QPainter();
 
         QStringList filters;
         filters << "*.png" << "*.jpg" << "*.bmp";
@@ -89,12 +96,9 @@ public:
         for (int i = 0; i < num; ++i)
         {
             QLabel* displayImg = new QLabel(parent);
-            displayImg->resize(150,150);
+//            displayImg->resize(100,100);
             displayImg->setAlignment(Qt::AlignCenter);
             mDisplayImageList.push_back(displayImg);
-//            QPixmap image((*mFileInfoList)[i].absoluteFilePath());
-//            image = image.scaled(displayImg->size(),Qt::KeepAspectRatio);
-//            displayImg->setPixmap(image);
 
             QSpinBox* chance = new QSpinBox(parent);
             chance->setRange(0,100);
@@ -103,19 +107,26 @@ public:
 
             QLabel* text1 = new QLabel("Rate", parent);
             mRate.push_back(text1);
-            QLabel* text2 = new QLabel("%", parent);
-            mPercent.push_back(text2);
+//            QLabel* text2 = new QLabel("%", parent);
+//            mPercent.push_back(text2);
+            if (i%2 == 0)
+            {
+                displayImg->setGeometry(PADDING/2,PADDING/2+dy,100,100);
+                text1->setGeometry(PADDING+100,PADDING/2+dy+35,30,30);
+                chance->setGeometry(PADDING+130,PADDING/2+dy+35,40,30);
+    //            text2->setGeometry(PADDING*2+240,PADDING/2+dy+60,30,30);
 
-            displayImg->setGeometry(PADDING/2,PADDING/2+dy,150,150);
-            text1->setGeometry(PADDING+150,PADDING/2+dy+60,30,30);
-            chance->setGeometry(PADDING*3/2+180,PADDING/2+dy+60,60,30);
-            text2->setGeometry(PADDING*2+240,PADDING/2+dy+60,30,30);
-
-            dy += 170;
+            }
+            else
+            {
+                displayImg->setGeometry(185+PADDING/2,PADDING/2+dy,100,100);
+                text1->setGeometry(185+PADDING+100,PADDING/2+dy+35,30,30);
+                chance->setGeometry(185+PADDING+130,PADDING/2+dy+35,40,30);
+                dy += 110;
+            }
         }
 
-//        std::cout << "store ok" << endl;
-        startWorkerThread(mFileInfoList, mDisplayImageList);
+        startWorkerThread(mFileInfoList, mDisplayImageList, mPainter);
     }
 
     ~DirectoryData()
@@ -130,7 +141,7 @@ public:
             mDisplayImageList[i]->show();
             mChanceList[i]->show();
             mRate[i]->show();
-            mPercent[i]->show();
+//            mPercent[i]->show();
         }
     }
 
@@ -141,14 +152,14 @@ public:
             mDisplayImageList[i]->close();
             mChanceList[i]->close();
             mRate[i]->close();
-            mPercent[i]->close();
+//            mPercent[i]->close();
         }
     }
 
     void clearAndDeleteImages(); // Delete from mImageList when the folder is removed from mDirectoryList.
-    void startWorkerThread(QFileInfoList* mFileInfoList, vector<QLabel*>& mDisplayImageList)
+    void startWorkerThread(QFileInfoList* mFileInfoList, vector<QLabel*>& mDisplayImageList, QPainter* mPainter)
     {
-        WorkerThread* mWorkerThread = new WorkerThread(mFileInfoList, mDisplayImageList);
+        WorkerThread* mWorkerThread = new WorkerThread(mFileInfoList, mDisplayImageList, mPainter);
     //    connect(mWorkerThread, &WorkerThread::resultReady, this, &DirectoryData::handleResults);
         connect(mWorkerThread, &WorkerThread::finished, mWorkerThread, &QObject::deleteLater);
         mWorkerThread->start();
@@ -162,10 +173,12 @@ private:
     QFileInfoList* mFileInfoList;
 //    //* imagesList;
 //    vector<QPixmap*> mImageList;
+//    vector<QFrame*> mBorder;
     vector<QLabel*> mDisplayImageList;
     vector<QSpinBox*> mChanceList;
     vector<QLabel*> mRate;
-    vector<QLabel*> mPercent;
+//    vector<QLabel*> mPercent;
+    QPainter* mPainter;
 
     int32_t num;
     int32_t dy = 0;
