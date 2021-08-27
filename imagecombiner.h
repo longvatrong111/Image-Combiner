@@ -65,7 +65,6 @@ private:
             image = image.scaled(displayImg->size(),Qt::KeepAspectRatio,Qt::SmoothTransformation);
             mPainter->begin(&image);
             mPainter->setPen(Qt::black);
-//            mPainter->drawRect(image.rect());
             mPainter->drawRect(0,0,99,99);
             mPainter->end();
             displayImg->setPixmap(image);
@@ -96,7 +95,6 @@ public:
         for (int i = 0; i < num; ++i)
         {
             QLabel* displayImg = new QLabel(parent);
-//            displayImg->resize(100,100);
             displayImg->setAlignment(Qt::AlignCenter);
             mDisplayImageList.push_back(displayImg);
 
@@ -168,14 +166,12 @@ public:
     int size() {return num;};
     QString getPath() {return mPath;};
 
+    vector<QSpinBox*> mChanceList;
+    QFileInfoList* mFileInfoList;
+
 private:
     QString mPath;
-    QFileInfoList* mFileInfoList;
-//    //* imagesList;
-//    vector<QPixmap*> mImageList;
-//    vector<QFrame*> mBorder;
     vector<QLabel*> mDisplayImageList;
-    vector<QSpinBox*> mChanceList;
     vector<QLabel*> mRate;
 //    vector<QLabel*> mPercent;
     QPainter* mPainter;
@@ -220,6 +216,7 @@ private:
     /* Data */
     vector<QDir*> dirList;
     vector<QFileInfoList*> imagesContainerList;
+    vector<DirectoryData*> mDataList;
     QDir* mBackgroundDir = nullptr;
     map<QString, DirectoryData*> mDataMap;
 
@@ -233,7 +230,8 @@ private:
     /* Data for processing */
     QDir* mOutDir;
     vector<QImage> mCombination;
-//    vector<int> mDrawChance;
+    vector<vector<int>> mDrawChance;
+    vector<int> mCombinationRate;
 
     /* Number of output */
     QPushButton* mProcess;
@@ -242,6 +240,7 @@ private:
     int32_t mMaxOutput = 1000000; /* mMaxOutputSpin.value(), default = 1000000 */
 
     int32_t mNumberOfCombination = 1;
+    double mExpectedCombination = 1;
     int32_t mCurOutputIndex;
     int32_t mTotal; /* Min of max output by user or max number of combinations */
     bool randomAlg;

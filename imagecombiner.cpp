@@ -421,27 +421,37 @@ void ImageCombiner::submitInput()
     QStringList filters;
     filters << "*.png" << "*.jpg" << "*.bmp";
 
+/* Start blocking user input */
     for (auto dir:dirList)
     {
-        QFileInfoList* infoList = new QFileInfoList(dir->entryInfoList(filters, QDir::Files|QDir::NoDotAndDotDot));
-        imagesContainerList.push_back(infoList);
+//        QFileInfoList* infoList = new QFileInfoList(dir->entryInfoList(filters, QDir::Files|QDir::NoDotAndDotDot));
+//        imagesContainerList.push_back(infoList);
+        mDataList.push_back(mDataMap[dir->absolutePath()]);
     }
 
-    mNumberOfCombination = 1;
-    for (size_t i = 0; i < imagesContainerList.size(); ++i)
+//    mNumberOfCombination = 1;
+    double ec = 1;
+    for (size_t i = 0; i < mDataList.size(); ++i)
     {
-        int64_t temp = (int64_t)mNumberOfCombination * (int64_t)imagesContainerList[i]->size();
-        if (temp > 999999999)
+        double temp = 0;
+        mDrawChance.push_back(vector<int>());
+        for (int j = 0; j < mDataList[i]->size(); ++j)
         {
-            return;
+            mDrawChance[i].push_back(mDataList[i]->mChanceList[j]->value());
+            temp += (double)mDrawChance[i][j]/100;
         }
-        mNumberOfCombination = (int32_t)temp;
+//        int64_t temp = (int64_t)mNumberOfCombination * (int64_t)mDataList[i]->size();
+//        if (temp > 999999999) return;
+//        mNumberOfCombination = (int32_t)temp;
+        ec *= temp;
     }
+/* End blocking user input */
 
     mCurOutputIndex = 0;
+    mExpectedCombination = ec;
     mMaxOutput = mMaxOutputSpin->value();
-    mTotal = std::min(mMaxOutput, mNumberOfCombination);
-    randomAlg = mMaxOutput < mNumberOfCombination;
+    mTotal = std::min(mMaxOutput, (int32_t)mExpectedCombination);
+//    randomAlg = mMaxOutput < mNumberOfCombination;
 
     mProgressBar->setRange(0,mTotal);
 
@@ -455,7 +465,9 @@ void ImageCombiner::endGenerating(bool res)
 {
     /* Clear current data for a submition */
     mCombination.clear();
-    imagesContainerList.clear();
+    mDataList.clear();
+    mDrawChance.clear();
+
     isRunningMainFunction = false;
     stopFlag = false;
 
@@ -473,32 +485,46 @@ void ImageCombiner::endGenerating(bool res)
 
 bool ImageCombiner::generateCombineImages(size_t index, vector<QImage>& combination)
 {
-    if (mCurOutputIndex >= mMaxOutput) return !stopFlag;
+//    if (mCurOutputIndex >= mMaxOutput) return !stopFlag;
     if (stopFlag) return !stopFlag;
 
-    if (index == imagesContainerList.size() - 1)
+    if (index == mDataList.size() - 1)
     {
         /* generate image */
-        for (size_t minorIndex = 0; minorIndex < imagesContainerList[index]->size(); ++minorIndex)
+        for (size_t minorIndex = 0; minorIndex < mDataList[index]->size(); ++minorIndex)
         {
+//            if (mCurOutputIndex >= mMaxOutput) break;
+            if (stopFlag) break;
+            mCombinationRate.push_back(mDrawChance[index][minorIndex]);
+            double cr = 1;
+            for (int i = 0; i < mCombinationRate.size(); ++i) cr *= (double)mCombinationRate[i]/100;
+            if (std::rand() % 100 + 1 > cr*(double)(mTotal - mCurOutputIndex)/mExpectedCombination*100)
+            {
+                mCombinationRate.pop_back();
+                mExpectedCombination -= cr;
+                continue;
+            }
+            mExpectedCombination -= cr;
 
-            QImage curImage((*imagesContainerList[index])[minorIndex].absoluteFilePath());
+            QImage curImage((*mDataList[index]->mFileInfoList)[minorIndex].absoluteFilePath());
             combination.push_back(curImage);
             saveImage(combination);
             combination.pop_back();
+            mCombinationRate.pop_back();
             QCoreApplication::processEvents();
-            if (mCurOutputIndex >= mMaxOutput) break;
-            if (stopFlag) break;
+
         }
         return !stopFlag;
     }
 
-    for (size_t minorIndex = 0; minorIndex < imagesContainerList[index]->size(); ++minorIndex)
+    for (size_t minorIndex = 0; minorIndex < mDataList[index]->size(); ++minorIndex)
     {
-        QImage curImage((*imagesContainerList[index])[minorIndex].absoluteFilePath());
+        QImage curImage((*mDataList[index]->mFileInfoList)[minorIndex].absoluteFilePath());
         combination.push_back(curImage);
+        mCombinationRate.push_back(mDrawChance[index][minorIndex]);
         generateCombineImages(index + 1, combination);
         combination.pop_back();
+        mCombinationRate.pop_back();
     }
 
     return !stopFlag;
@@ -506,19 +532,32 @@ bool ImageCombiner::generateCombineImages(size_t index, vector<QImage>& combinat
 
 void ImageCombiner::saveImage(vector<QImage>& combination)
 {
-    if (randomAlg)
-    {
-        if (std::rand() % mNumberOfCombination + 1 >  mTotal - mCurOutputIndex)
-        {
-            mNumberOfCombination--;
-            return;
-        }
-    }
+//    if (randomAlg)
+//    {
+//        if (std::rand() % mNumberOfCombination + 1 >  mTotal - mCurOutputIndex)
+//        {
+//            mNumberOfCombination--;
+//            return;
+//        }
+//    }
 
     int n = combination.size();
     if (n == 0) return;
 
-    QImage res(combination[0].width(), combination[0].height(), QImage::Format_RGBA8888);
+    QImage res;
+    if (mBackgroundDir &&  mDataMap[mBackgroundDir->absolutePath()]->size())
+    {
+        DirectoryData* dirData = mDataMap[mBackgroundDir->absolutePath()];
+        vector<int> chance(dirData->size());
+        chance[0] = dirData->mChanceList[0]->value();
+        for (int i = 1; i < chance.size(); ++i) chance[i] = chance[i-1] + dirData->mChanceList[i]->value();
+        int index = 0;
+        int value = std::rand()%chance.back() + 1;
+        while (value > chance[index]) index++;
+        res = QImage((*dirData->mFileInfoList)[index].absoluteFilePath());
+    }
+    else res = QImage(combination[0].width(), combination[0].height(), QImage::Format_RGBA8888);
+
     QPainter* painter = new QPainter(&res);
     for (size_t i = 0; i < n; ++i)
     {
