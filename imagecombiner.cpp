@@ -90,7 +90,7 @@ void ImageCombiner::renderControlBlock()
     mMaxOutputSpin->setGeometry(PADDING+80,PADDING,80,40);
 
     mProcess = new QPushButton("Process", mControl);
-    mProcess->setGeometry(BWIDTH-PADDING-80,PADDING,80,40);
+    mProcess->setGeometry(BWIDTH-PADDING-170,PADDING,170,40);
     QObject::connect(mProcess, SIGNAL (clicked()), this, SLOT(submitInput()));
 
     mProgressBar = new QProgressBar(mControl);
@@ -246,8 +246,30 @@ void ImageCombiner::selectBackground()
 //    renderDirectoryList(mBackgroundBtn, mBackgroundClose);
     dy = 10;
     mBackgroundBtn->setGeometry(PADDING,dy,BWIDTH-60-(PADDING*2),40);
+    mBackgroundBtn->setStyleSheet(
+                        "QPushButton {"
+                        "color: white;"
+                        "background-color: #D78521;"
+                        "border: 1px solid #8f8f91;"
+                        "margin: 1px;"
+                        "}"
+                        "QPushButton:hover:!pressed {"
+                        "background-color: #D89000;"
+                        "border: 1px solid #8f8f91;"
+                        "}");
     mBackgroundBtn->show();
     mBackgroundClose->setGeometry(PADDING+mBackgroundBtn->width(),dy,40,40);
+    mBackgroundClose->setStyleSheet(
+                        "QPushButton {"
+                        "color: white;"
+                        "background-color: #D78521;"
+                        "border: 1px solid #8f8f91;"
+                        "margin: 1px;"
+                        "}"
+                        "QPushButton:hover:!pressed {"
+                        "background-color: #D89000;"
+                        "border: 1px solid #8f8f91;"
+                        "}");
     mBackgroundClose->show();
     dy += 50;
     /* Re-render */
