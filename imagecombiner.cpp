@@ -258,6 +258,7 @@ void ImageCombiner::selectBackground()
 
 void ImageCombiner::renderImageListBgr()
 {
+    if (isRunningMainFunction) return;
     QString path = mBackgroundDir->absolutePath();
     if (currentDirData)
     {
@@ -276,6 +277,7 @@ void ImageCombiner::renderImageListBgr()
 
 void ImageCombiner::deleteBackgroundDir(QPushButton* mBackgroundClose)
 {
+    if (isRunningMainFunction) return;
     mBackgroundBtn->close();
     mBackgroundClose->close();
     delete mBackgroundBtn;
