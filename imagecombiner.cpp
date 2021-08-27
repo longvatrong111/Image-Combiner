@@ -59,11 +59,11 @@ void ImageCombiner::renderDirBlock()
     mButtonsArea = new QWidget(mDirectoryList);
     mButtonsArea->setGeometry(0,BHEIGHT-(PADDING*2)-40,BWIDTH,PADDING*2+40);
 
-    mAddBackground = new QPushButton("SELECT BACKGROUND", mButtonsArea);
+    mAddBackground = new QPushButton("Select background", mButtonsArea);
     mAddBackground->setGeometry(PADDING,PADDING,(BWIDTH-(3*PADDING))/2,40);
     QObject::connect(mAddBackground, SIGNAL (clicked()), this, SLOT(selectBackground()));
 
-    mAddDir = new QPushButton("ADD DIRECTORY", mButtonsArea);
+    mAddDir = new QPushButton("Add directory", mButtonsArea);
     mAddDir->setGeometry(PADDING*2+(BWIDTH-(3*PADDING))/2,PADDING,(BWIDTH-(3*PADDING))/2,40);
     QObject::connect(mAddDir, SIGNAL (clicked()), this, SLOT(openDirectory()));
 }
@@ -115,8 +115,16 @@ void ImageCombiner::openDirectory()
 {
     if (isRunningMainFunction) return;
 
+//    QString dirPath = QFileDialog::getExistingDirectory(this, tr("Add Directory"), "./", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     QString dirPath = QFileDialog::getExistingDirectory(this, tr("Add Directory"), "C:/Users/TRONG/Downloads/ImageCombinerTest", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if (dirPath.isEmpty()) return;
+    if (dirPath.isEmpty() || (mBackgroundDir && dirPath == mBackgroundDir->absolutePath())) return;
+    for (auto dir:dirList)
+    {
+        if (dirPath == dir->absolutePath())
+        {
+            return;
+        }
+    }
 
     QDir* dir = new QDir(dirPath);
     dirList.push_back(dir);
@@ -205,8 +213,16 @@ void ImageCombiner::selectBackground()
 {
     if (isRunningMainFunction) return;
 
+//    QString dirPath = QFileDialog::getExistingDirectory(this, tr("Add Directory"), "./", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     QString dirPath = QFileDialog::getExistingDirectory(this, tr("Select background"), "C:/Users/TRONG/Downloads/ImageCombinerTest", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     if (dirPath.isEmpty()) return;
+    for (auto dir:dirList)
+    {
+        if (dirPath == dir->absolutePath())
+        {
+            return;
+        }
+    }
 
     if (mBackgroundDir)
     {
@@ -383,8 +399,9 @@ void ImageCombiner::submitInput()
 
     isRunningMainFunction = true;
 
+//    QString dirPath = QFileDialog::getExistingDirectory(this, tr("Add Directory"), "./", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     QString dirPath = QFileDialog::getExistingDirectory(this, tr("Select Output Folder"), "C:/Users/TRONG/Downloads/ImageCombinerTest", QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-    if (dirPath.isEmpty())
+    if (dirPath.isEmpty() || (mBackgroundDir && dirPath == mBackgroundDir->absolutePath()) || dirList.size() == 0)
     {
         isRunningMainFunction = false;
         return;
@@ -397,12 +414,6 @@ void ImageCombiner::submitInput()
             isRunningMainFunction = false;
             return;
         }
-    }
-
-    if (dirList.size() == 0)
-    {
-        isRunningMainFunction = false;
-        return;
     }
 
     mOutDir = new QDir(dirPath);
